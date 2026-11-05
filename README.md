@@ -1,20 +1,23 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# TechFix Assist
 
-# Run and deploy your AI Studio app
+Assistente de compatibilidade de peças para técnicos de manutenção de celulares e tablets.
+React + Vite + Tailwind no front, função serverless (`/api/consulta`) chamando o Gemini.
 
-This contains everything you need to run your app locally.
+## Rodar localmente
 
-View your app in AI Studio: https://ai.studio/apps/254fbbd3-894e-4e3e-a081-f552ea651cb5
+```bash
+npm install
+cp .env.example .env.local   # coloque sua GEMINI_API_KEY
+npm run dev                  # http://localhost:3000
+```
 
-## Run Locally
+O `npm run dev` já serve `/api/consulta` (plugin no `vite.config.ts`).
 
-**Prerequisites:**  Node.js
+## Deploy na Vercel
 
+1. Suba o projeto no GitHub.
+2. Na Vercel: **Add New → Project** → importe o repositório (preset **Vite** é detectado sozinho).
+3. Em **Settings → Environment Variables**, adicione `GEMINI_API_KEY` (e, se quiser, `GEMINI_MODEL`).
+4. **Deploy**. Qualquer `git push` na `main` redeploya automaticamente.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+> A chave do Gemini fica só no servidor. Não use prefixo `VITE_` nela.
