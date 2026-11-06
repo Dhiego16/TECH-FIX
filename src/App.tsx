@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
-import { AlertCircle, Loader2, Moon, Search, Smartphone, Sun, Wrench } from 'lucide-react';
-import { consultar } from './lib/api';
+import { AlertCircle, KeyRound, Loader2, Moon, Search, Settings as SettingsIcon, Smartphone, Sun, Wrench } from 'lucide-react';
+import { consultar } from './lib/gemini';
+import { useSettings } from './hooks/useSettings';
+import SettingsDialog from './components/SettingsDialog';
 import { useHistory, type Entry } from './hooks/useHistory';
 import { useTheme } from './hooks/useTheme';
 import ResultCard from './components/ResultCard';
@@ -13,6 +15,8 @@ type Current = { id?: string; device: string; part: string; result: string; from
 export default function App() {
   const { dark, toggle } = useTheme();
   const { entries, find, add, remove, clear } = useHistory();
+  const { settings, save, hasKey } = useSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [device, setDevice] = useState('');
   const [part, setPart] = useState('');
@@ -33,6 +37,11 @@ export default function App() {
       }
     }
 
+    if (!hasKey) {
+      setSettingsOpen(true);
+      return;
+    }
+
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -40,7 +49,7 @@ export default function App() {
     setLoading(true);
     setCurrent(null);
     try {
-      const result = await consultar(d.trim(), p.trim(), ctrl.signal);
+      const result = await consultar(d, p, { apiKey: settings.apiKey, model: settings.model, signal: ctrl.signal });
       const entry = add(d, p, result);
       setCurrent({ id: entry.id, device: entry.device, part: entry.part, result, fromCache: false });
     } catch (err: any) {
@@ -79,18 +88,41 @@ export default function App() {
               <p className="text-xs text-slate-400 sm:text-sm">Compatibilidade de peças para técnicos de bancada</p>
             </div>
           </div>
-          <button
-            onClick={toggle}
-            aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'}
-            className="rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-          >
-            {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Configurações"
+              className="relative rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            >
+              <SettingsIcon className="h-5 w-5" />
+              {!hasKey && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-400" />}
+            </button>
+            <button
+              onClick={toggle}
+              aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'}
+              className="rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            >
+              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-12">
         <aside className="space-y-6 lg:col-span-4">
+          {!hasKey && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900 transition hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/60"
+            >
+              <KeyRound className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <strong>Configure sua chave do Gemini</strong> para começar. É gratuita e fica salva só no seu
+                navegador.
+              </span>
+            </button>
+          )}
+
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
               <Search className="h-5 w-5 text-slate-400" />
@@ -233,6 +265,8 @@ export default function App() {
           </div>
         </section>
       </main>
+
+      <SettingsDialog open={settingsOpen} settings={settings} onSave={save} onClose={() => setSettingsOpen(false)} />
 
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-center text-xs text-slate-500 dark:text-slate-500">
         TechFix Assist — informações geradas por IA, sempre confirme na bancada.

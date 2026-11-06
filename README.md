@@ -1,23 +1,30 @@
 # TechFix Assist
 
 Assistente de compatibilidade de peças para técnicos de manutenção de celulares e tablets.
-React + Vite + Tailwind no front, função serverless (`/api/consulta`) chamando o Gemini.
+React + Vite + Tailwind. **100% front-end**: cada usuário usa a própria chave do Gemini,
+salva só no navegador dele. Não há backend.
 
 ## Rodar localmente
 
 ```bash
 npm install
-cp .env.example .env.local   # coloque sua GEMINI_API_KEY
-npm run dev                  # http://localhost:3000
+npm run dev   # http://localhost:3000
 ```
 
-O `npm run dev` já serve `/api/consulta` (plugin no `vite.config.ts`).
+Abra o app, clique na engrenagem e cole sua chave
+(grátis em https://aistudio.google.com/apikey).
 
-## Deploy na Vercel
+## Deploy no GitHub Pages
 
-1. Suba o projeto no GitHub.
-2. Na Vercel: **Add New → Project** → importe o repositório (preset **Vite** é detectado sozinho).
-3. Em **Settings → Environment Variables**, adicione `GEMINI_API_KEY` (e, se quiser, `GEMINI_MODEL`).
-4. **Deploy**. Qualquer `git push` na `main` redeploya automaticamente.
+O workflow `.github/workflows/deploy.yml` faz build e publica a cada push na `main`.
 
-> A chave do Gemini fica só no servidor. Não use prefixo `VITE_` nela.
+Só uma vez: no repositório, **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+O site fica em `https://<usuario>.github.io/TECH-FIX/`.
+
+## Segurança da chave
+
+- A chave nunca vai para o código nem para o repositório.
+- Para reduzir risco, no Google AI Studio/Cloud restrinja a chave por **HTTP referrer**
+  ao domínio do site (`https://<usuario>.github.io/*`).
+- Em computador compartilhado, use "Remover chave" ao terminar.
