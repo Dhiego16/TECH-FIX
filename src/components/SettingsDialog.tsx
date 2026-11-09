@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Eye, EyeOff, KeyRound, ShieldCheck, X } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, KeyRound, Loader2, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { listarModelos, melhorModelo } from '../lib/gemini';
 import { DEFAULT_MODEL, type Settings } from '../hooks/useSettings';
 
 type Props = {
@@ -9,12 +10,15 @@ type Props = {
   onClose: () => void;
 };
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview'];
+const SUGGESTED = ['gemini-3.5-flash', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite'];
 
 export default function SettingsDialog({ open, settings, onSave, onClose }: Props) {
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model);
   const [show, setShow] = useState(false);
+  const [models, setModels] = useState<string[]>(SUGGESTED);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelsMsg, setModelsMsg] = useState('');
   const firstRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -22,6 +26,7 @@ export default function SettingsDialog({ open, settings, onSave, onClose }: Prop
       setApiKey(settings.apiKey);
       setModel(settings.model);
       setShow(false);
+      setModelsMsg('');
       setTimeout(() => firstRef.current?.focus(), 0);
     }
   }, [open, settings]);
@@ -32,6 +37,34 @@ export default function SettingsDialog({ open, settings, onSave, onClose }: Prop
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  const buscarModelos = async () => {
+    if (!apiKey.trim()) {
+      setModelsMsg('Cole a chave primeiro.');
+      return;
+    }
+    setLoadingModels(true);
+    setModelsMsg('');
+    try {
+      const list = await listarModelos(apiKey.trim());
+      if (list.length === 0) {
+        setModelsMsg('Nenhum modelo de texto disponível para essa chave.');
+        return;
+      }
+      setModels(list);
+      if (!list.includes(model)) {
+        const best = melhorModelo(list);
+        if (best) setModel(best);
+        setModelsMsg(`Modelo anterior indisponível. Selecionado: ${best}`);
+      } else {
+        setModelsMsg(`${list.length} modelos disponíveis para sua chave.`);
+      }
+    } catch (e: any) {
+      setModelsMsg(e?.message || 'Não foi possível buscar os modelos.');
+    } finally {
+      setLoadingModels(false);
+    }
+  };
 
   if (!open) return null;
 
@@ -106,9 +139,20 @@ export default function SettingsDialog({ open, settings, onSave, onClose }: Prop
         </div>
 
         <div>
-          <label htmlFor="model" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Modelo
-          </label>
+          <div className="mb-1 flex items-center justify-between">
+            <label htmlFor="model" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Modelo
+            </label>
+            <button
+              type="button"
+              onClick={buscarModelos}
+              disabled={loadingModels}
+              className="inline-flex items-center gap-1 text-xs text-sky-600 hover:underline disabled:opacity-60 dark:text-sky-400"
+            >
+              {loadingModels ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Buscar modelos da minha chave
+            </button>
+          </div>
           <input
             id="model"
             list="models"
@@ -119,10 +163,11 @@ export default function SettingsDialog({ open, settings, onSave, onClose }: Prop
             className={inputCls}
           />
           <datalist id="models">
-            {MODELS.map((m) => (
+            {models.map((m) => (
               <option key={m} value={m} />
             ))}
           </datalist>
+          {modelsMsg && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{modelsMsg}</p>}
         </div>
 
         <div className="flex gap-3 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">

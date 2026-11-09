@@ -82,3 +82,37 @@ export async function consultar(
   if (!text) throw new Error('A IA não retornou informação para essa consulta.');
   return text;
 }
+
+// ---- Lista de modelos disponíveis para a chave do usuário ----
+
+const EXCLUDE = /(image|tts|live|embed|audio|robotics|veo|imagen|lyria|transcribe|computer|research|aqa|translate|learnlm|gemma)/i;
+
+export async function listarModelos(apiKey: string, signal?: AbortSignal): Promise<string[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${ENDPOINT}?pageSize=200`, { headers: { 'x-goog-api-key': apiKey }, signal });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err;
+    throw new Error('Sem conexão com a API do Gemini. Verifique sua internet.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(errorMessage(res.status, data?.error?.message));
+
+  const names: string[] = (data?.models ?? [])
+    .filter((m: any) => (m.supportedGenerationMethods ?? []).includes('generateContent'))
+    .map((m: any) => String(m.name).replace(/^models\//, ''))
+    .filter((n: string) => n.startsWith('gemini-') && !EXCLUDE.test(n));
+
+  return Array.from(new Set(names)).sort((a, b) => version(b) - version(a) || a.localeCompare(b));
+}
+
+function version(name: string): number {
+  const m = name.match(/gemini-(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+/** Escolhe um bom padrão: Flash mais novo, estável (sem "preview") de preferência. */
+export function melhorModelo(lista: string[]): string | undefined {
+  const flash = lista.filter((n) => /flash/.test(n) && !/lite/.test(n));
+  return flash.find((n) => !/preview|exp/.test(n)) ?? flash[0] ?? lista[0];
+}

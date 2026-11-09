@@ -232,12 +232,22 @@ export default function App() {
               <div className="flex flex-col items-center justify-center space-y-3 py-24 text-center">
                 <AlertCircle className="h-10 w-10 text-red-500" />
                 <p className="text-red-600 dark:text-red-400">{error}</p>
-                <button
-                  onClick={() => run(device, part, true)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                >
-                  Tentar novamente
-                </button>
+                <div className="flex gap-2">
+                  {error.includes('Configurações') && (
+                    <button
+                      onClick={() => setSettingsOpen(true)}
+                      className="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700"
+                    >
+                      Abrir configurações
+                    </button>
+                  )}
+                  <button
+                    onClick={() => run(device, part, true)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
               </div>
             ) : current ? (
               <>
